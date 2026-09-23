@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JoOS — Pré-visualização do desktop</title>
+<style>
+  :root {
+    --bg: #0b0e14; --bg-alt: #11161f; --fg: #e8e3d3; --fg-dim: #8a8f9c;
+    --accent: #d8a657; --accent2: #6aa9a4; --urgent: #cf5b5b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "JetBrains Mono", "Cascadia Code", monospace;
+    background: #05060a; color: var(--fg); display: flex; flex-direction: column;
+    align-items: center; padding: 18px 12px; gap: 14px;
+  }
+  h1 { font-size: 15px; letter-spacing: 2px; color: #8a8f9c; font-weight: 400; }
+  h1 b { color: var(--accent); }
+
+  .stage {
+    width: min(1200px, 96vw); aspect-ratio: 16/9; border-radius: 0;
+    border: 2px solid #2a2d37; overflow: hidden; position: relative;
+    background: var(--bg); box-shadow: 0 0 0 4px #07080c, 0 24px 60px rgba(0,0,0,.6);
+  }
+
+  .wallpaper { position: absolute; inset: 0; background-size: cover; background-position: center; }
+
+  .bar {
+    position: absolute; top: 0; left: 0; right: 0; height: 30px; z-index: 10;
+    display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 12px;
+    background: var(--bg); border-bottom: 2px solid var(--accent);
+  }
+  .bar .ws { display: flex; gap: 5px; }
+  .bar .ws span {
+    padding: 1px 8px; background: var(--bg-alt); color: var(--fg);
+  }
+  .bar .ws span.active { background: var(--accent); color: var(--bg); font-weight: 700; }
+  .bar .spacer { flex: 1; }
+  .bar .clock { color: var(--accent); font-weight: 700; }
+  .bar .chip { color: var(--fg); background: var(--bg-alt); padding: 1px 8px; }
+
+  .win {
+    position: absolute; border: 2px solid var(--accent); background: var(--bg);
+  }
+  .win .title {
+    height: 24px; padding: 3px 10px; font-size: 11px; background: var(--bg-alt);
+    display: flex; align-items: center; justify-content: space-between; color: var(--fg-dim);
+  }
+  .win .title b { color: var(--accent); }
+
+  .terminal { left: 14px; top: 44px; width: 55%; bottom: 14px; }
+  .terminal .body { padding: 10px 14px; font-size: 12.5px; line-height: 1.55; color: var(--fg); height: calc(100% - 24px); overflow: hidden; }
+  .terminal .logo { color: var(--accent2); white-space: pre; font-size: 10px; line-height: 1.15; margin-bottom: 8px; }
+  .terminal .prompt { color: var(--fg); }
+  .terminal .prompt span.g { color: var(--accent); }
+  .terminal .prompt span.d { color: var(--fg-dim); }
+
+  .files { right: 14px; top: 44px; width: 38%; bottom: 14px; }
+  .files .body { padding: 8px 12px; font-size: 12px; line-height: 2; color: var(--fg); height: calc(100% - 24px); overflow: hidden; }
+  .files .body .row { display: flex; justify-content: space-between; color: var(--fg); }
+  .files .body .row.current { color: var(--accent); background: var(--bg-alt); padding: 0 6px; }
+
+  .overlay { position: absolute; inset: 0; z-index: 20; background: rgba(5,6,10,.78); display: none; align-items: flex-start; justify-content: center; }
+  .overlay.show { display: flex; }
+
+  .menu {
+    margin-top: 120px; width: 380px; border: 2px solid var(--accent); background: var(--bg);
+  }
+  .menu .in { padding: 8px 12px; background: var(--bg-alt); color: var(--accent); font-size: 12px; }
+  .menu .item { padding: 7px 12px; font-size: 12px; color: var(--fg); display: flex; justify-content: space-between; }
+  .menu .item.hot { background: var(--accent); color: var(--bg); font-weight: 700; }
+
+  .keys {
+    margin-top: 80px; width: 720px; border: 2px solid var(--accent); background: var(--bg); padding: 16px 20px; font-size: 12px; line-height: 1.9;
+  }
+  .keys h3 { color: var(--accent); margin-bottom: 8px; font-size: 13px; }
+  .keys table { width: 100%; border-collapse: collapse; }
+  .keys td { padding: 2px 8px; border-bottom: 1px solid var(--bg-alt); }
+  .keys td:first-child { color: var(--accent2); white-space: nowrap; }
+  .keys .dim { color: var(--fg-dim); }
+
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .controls button {
+    font-family: inherit; font-size: 12px; color: var(--bg); background: var(--accent);
+    border: 0; padding: 7px 14px; cursor: pointer;
+  }
+  .controls button.ghost { color: var(--fg); background: var(--bg-alt); border: 1px solid var(--accent); }
+  .controls .themes { display: flex; gap: 6px; }
+  .controls .themes button {
+    color: var(--fg); background: var(--bg-alt); border: 1px solid #2a2d37; padding: 6px 10px;
+  }
+  .controls .themes button.on { border-color: var(--accent); color: var(--accent); }
+  .hint { color: #5c6470; font-size: 11px; text-align: center; line-height: 1.7; }
+  .hint kbd { color: var(--accent); background: var(--bg-alt); padding: 1px 5px; }
+</style>
+</head>
+<body>
+  <h1>JoOS <b>Pré-visualização do desktop</b> — estética pixel · Hyprland</h1>
+
+  <div class="controls">
+    <button class="ghost" onclick="menuOpen()">Super+Espaço — menu</button>
+    <button class="ghost" onclick="keysOpen()">Super+K — atalhos</button>
+    <span class="themes" id="themeBtns"></span>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="wallpaper" id="wall"></div>
+
+    <div class="bar" id="bar">
+      <div class="ws"><span class="active">1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></div>
+      <span id="bartitle" class="chip" style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+      <div class="spacer"></div>
+      <span class="chip">CPU 12%</span>
+      <span class="chip">RAM 1.9G</span>
+      <span class="chip" id="barnet"></span>
+      <span class="chip">vol 60%</span>
+      <span class="clock" id="clock"></span>
+    </div>
+
+    <div class="win terminal">
+      <div class="title"><b>joos — alacritty</b><span>—</span></div>
+      <div class="body">
+        <div class="logo" id="logoText"></div>
+        <div class="prompt"><span class="g">joos</span>@<span class="d">joos-live</span> <span class="d">~</span> <span>$</span></div>
+        <div style="color:var(--fg-dim)">joos — digite <span style="color:var(--accent2)">joos-theme cycle</span> ou veja <span style="color:var(--accent2)">Super+K</span></div>
+      </div>
+    </div>
+
+    <div class="win files">
+      <div class="title"><b>joos — yazi</b><span>—</span></div>
+      <div class="body" id="filesBody"></div>
+    </div>
+
+    <div class="overlay" id="menuOverlay" onclick="this.classList.remove('show')">
+      <div class="menu">
+        <div class="in">JoOS &nbsp;— &nbsp;<span id="menuTheme"></span></div>
+        <div class="item hot"><span>Aplicativos</span><span>Super+Espaço</span></div>
+        <div class="item"><span>Terminal</span><span>Super+Enter</span></div>
+        <div class="item"><span>Firefox</span><span>Super+Shift+Enter</span></div>
+        <div class="item"><span>Temas</span><span>Super+Ctrl+Shift+Espaço</span></div>
+        <div class="item"><span>Wallpaper</span><span>Super+Ctrl+Espaço</span></div>
+        <div class="item"><span>Captura de tela</span><span>Super+P</span></div>
+        <div class="item"><span>Sistema (travar/reiniciar)</span><span>Super+Esc</span></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="keysOverlay" onclick="this.classList.remove('show')">
+      <div class="keys">
+        <h3>JoOS — Mapa de atalhos (Super = tecla Windows)</h3>
+        <table>
+          <tr><td>Super+Espaço</td><td>menu de aplicativos</td></tr>
+          <tr><td>Super+Alt+Espaço</td><td>menu de controle</td></tr>
+          <tr><td>Super+Enter</td><td>terminal (Alacritty)</td></tr>
+          <tr><td>Super+Shift+Enter</td><td>Firefox</td></tr>
+          <tr><td>Super+W</td><td>fechar janela</td></tr>
+          <tr><td>Super+F</td><td>tela cheia</td></tr>
+          <tr><td>Super+J</td><td>alternar orientação da divisão</td></tr>
+          <tr><td>Super+L</td><td>layout dwindle / master</td></tr>
+          <tr><td>Super+1..9</td><td>espaços de trabalho</td></tr>
+          <tr><td>Super+P</td><td>captura de região</td></tr>
+          <tr><td>Super+Ctrl+Espaço</td><td>próximo wallpaper</td></tr>
+          <tr><td>Super+Ctrl+Shift+Espaço</td><td>próximo tema</td></tr>
+          <tr><td>Super+Esc</td><td class="dim">menu do sistema</td></tr>
+          <tr><td>Super+Ctrl+L</td><td class="dim">travar sessão</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">
+    Simulação do desktop JoOS: waybar (topo), Alacritty (esquerda) e yazi — arquivos (direita),
+    todos em <kbd>dwindle</kbd>. Clique nos temas abaixo para trocar a paleta e o wallpaper.
+  </div>
+
+<script>
+  const THEMES = {
+    kingdom: { bg:"#0b0e14", bgAlt:"#11161f", fg:"#e8e3d3", fgDim:"#8a8f9c", accent:"#d8a657", accent2:"#6aa9a4", urgent:"#cf5b5b", wall:"wallpapers/kingdom.png", net:"wifi · casa", nets:"5G", logo:true },
+    "kingdom-dawn": { bg:"#1a1626", bgAlt:"#251f36", fg:"#f0eef6", fgDim:"#9a92ad", accent:"#e8b4b4", accent2:"#b8a4d8", urgent:"#e07b7b", wall:"wallpapers/kingdom-dawn.png", net:"wifi · casa", nets:"4G", logo:false },
+    "kingdom-dusk": { bg:"#14101e", bgAlt:"#1c162c", fg:"#f3ece4", fgDim:"#a094b0", accent:"#e0917a", accent2:"#8e7fd0", urgent:"#d15f5f", wall:"wallpapers/kingdom-dusk.png", net:"wifi · casa", nets:"4G", logo:false },
+    ember: { bg:"#17100d", bgAlt:"#231713", fg:"#f2e8e2", fgDim:"#a08fb0", accent:"#e4572e", accent2:"#f2a65a", urgent:"#ff2e2e", wall:"wallpapers/ember.png", net:"wifi · casa", nets:"3G", logo:false },
+    void: { bg:"#060709", bgAlt:"#0c0e12", fg:"#d7dde0", fgDim:"#5f6a70", accent:"#3dd68c", accent2:"#3dd6d6", urgent:"#e5484d", wall:"wallpapers/void.png", net:"eth", nets:"2G", logo:true }
+  };
+
+  const FILES = [
+    ["~/.config/hypr/hyprland.conf", "hot"],
+    ["~/.config/waybar/config.jsonc", ""],
+    ["~/.config/rofi/joos.rasi", ""],
+    ["~/.config/alacritty/colors.toml", ""],
+    ["~/.config/mako/config", ""],
+    ["/usr/share/joos/themes", ""],
+    ["/usr/share/joos/wallpapers", ""],
+    ["joos-keys.md", ""]
+  ];
+
+  let current = "kingdom";
+
+  function setTheme(name) {
+    const t = THEMES[name]; current = name;
+    const r = document.documentElement.style;
+    r.setProperty("--bg", t.bg); r.setProperty("--bg-alt", t.bgAlt);
+    r.setProperty("--fg", t.fg); r.setProperty("--fg-dim", t.fgDim);
+    r.setProperty("--accent", t.accent); r.setProperty("--accent2", t.accent2);
+    r.setProperty("--urgent", t.urgent);
+    document.getElementById("wall").style.backgroundImage = "url('" + t.wall + "')";
+    document.getElementById("barnet").textContent = t.net;
+    document.getElementById("menuTheme").textContent = name;
+    document.querySelectorAll("#themeBtns button").forEach(b =>
+      b.classList.toggle("on", b.dataset.t === name));
+    renderFiles(); drawLogo(t.logo);
+  }
+
+  function renderFiles() {
+    document.getElementById("filesBody").innerHTML = FILES.map(([f, hot]) =>
+      '<div class="row' + (hot ? ' current' : '') + '"><span>' + f + '</span><span style="color:var(--fg-dim)">6.8K</span></div>'
+    ).join("");
+  }
+
+  function drawLogo(show) {
+    const el = document.getElementById("logoText");
+    if (!show) { el.style.display = "none"; return; }
+    el.style.display = "block";
+    el.innerHTML = [
+      " #######   ######  ########     ###    ##    ##",
+      " ##    ## ##    ## ##     ##   ## ##   ###   ##",
+      " ##       ##       ##     ##  ##   ##  ####  ##",
+      "  ######  ##       ########  ######### ## ## ##",
+      "       ## ##       ##   ##   ##     ## ##  ####",
+      " ##    ## ##    ## ##    ##  ##     ## ##   ###",
+      "  ######   ######  ##     ## ##     ## ##    ##"
+    ].join("\n");
+  }
+
+  function menuOpen() { document.getElementById("menuOverlay").classList.add("show"); }
+  function keysOpen() { document.getElementById("keysOverlay").classList.add("show"); }
+
+  (function init() {
+    const wrap = document.getElementById("themeBtns");
+    Object.keys(THEMES).forEach(function (n) {
+      const b = document.createElement("button");
+      b.textContent = n; b.dataset.t = n;
+      b.onclick = function () { setTheme(n); };
+      wrap.appendChild(b);
+    });
+    setTheme("kingdom");
+    setInterval(function () {
+      const d = new Date();
+      document.getElementById("clock").textContent =
+        ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+"  "+
+        ["dom","seg","ter","qua","qui","sex","sab"][d.getDay()]+" "+
+        ("0"+d.getDate()).slice(-2)+"/"+(d.getMonth()+1<10?"0":"")+(d.getMonth()+1);
+    }, 1000);
+  })();
+</script>
+</body>
+</html>

@@ -2,36 +2,50 @@
 REM ============================================================
 REM  JoOS — Test Runner for Windows 11 (QEMU + WHPX)
 REM  Boots the JoOS ISO in a window, exactly like "Try Omarchy
-REM  for Windows". Requires Windows 11 (WHPX) and winget.
+REM  for Windows". Requires Windows 11.
 REM ============================================================
 setlocal enabledelayedexpansion
 
 cd /d "%~dp0"
 
+REM ---- 1. Locate QEMU (PATH ou pastas padrao do winget) ---------------------
+set "QEMUBIN="
+where qemu-system-x86_64 >nul 2>nul && (
+  for /f "delims=" %%i in ('where qemu-system-x86_64') do set "QEMUBIN=%%i"
+  goto :qemu_found
+)
+for %%P in ("%ProgramFiles%\qemu" "%ProgramW6432%\qemu" "%LOCALAPPDATA%\Programs\qemu" "%ProgramFiles(x86)%\qemu") do (
+  if exist "%%~P\qemu-system-x86_64.exe" (
+    set "QEMUBIN=%%~P\qemu-system-x86_64.exe"
+    goto :qemu_found
+  )
+)
+
+echo QEMU nao encontrado. Vou tentar instalar via winget...
 where winget >nul 2>nul
 if errorlevel 1 (
-  echo ERRO: winget nao encontrado. Use Windows 11 atualizado.
+  echo ERRO: winget nao existe. Instale o QEMU em https://www.qemu.org e rode de novo.
   pause
   exit /b 1
 )
-
-REM ---- 1. Install QEMU via winget if missing -------------------------------
-where qemu-system-x86_64 >nul 2>nul
-if errorlevel 1 (
-  echo ==^> Instalando QEMU (winget)...
-  winget install --id SoftwareFreedomConservancy.QEMU -e --accept-source-agreements --accept-package-agreements
+winget install --id SoftwareFreedomConservancy.QEMU -e --accept-source-agreements --accept-package-agreements
+if exist "%ProgramFiles%\qemu\qemu-system-x86_64.exe" (
+  set "QEMUBIN=%ProgramFiles%\qemu\qemu-system-x86_64.exe"
+  goto :qemu_found
 )
+echo ERRO: nao achei o QEMU apos a instalacao. Abra uma nova janela e rode de novo.
+pause
+exit /b 1
 
-REM ---- 2. Enable Windows Hypervisor Platform ------------------------------
-call :ensure_whpx
-if errorlevel 1 exit /b 1
+:qemu_found
+echo QEMU: %QEMUBIN%
 
-REM ---- 3. Locate the JoOS ISO -----------------------------------------------
+REM ---- 2. Ache o ISO ---------------------------------------------------------
 set "ISO=joos.iso"
 if not exist "%ISO%" (
   echo Nao achei %ISO% nesta pasta.
-  echo   -> Baixe o ISO no GitHub Actions (aba "Artifacts") e coloque aqui.
-  echo      Ou rode com o caminho:  run-joos.bat C:\caminho\joos.iso
+  echo   -> Baixe o ISO: GitHub Actions ^> artifact "joos-iso", extraia e renomeie.
+  echo   -> Ou rode com o caminho:  run-joos.bat C:\caminho\joos.iso
   echo.
   if "%~1"=="" (
     pause
@@ -45,23 +59,32 @@ if not exist "%ISO%" (
   exit /b 1
 )
 
-REM ---- 4. Where's QEMU? -----------------------------------------------------
-set "QEMU=qemu-system-x86_64"
-for /f "delims=" %%i in ('where qemu-system-x86_64') do set "QEMUBIN=%%i"
+REM ---- 3. Aceleracao (WHPX se habilitado; senao uses software TCG) ----------
+set "ACCEL=-machine q35 -cpu max -accel tcg,thread=multi"
+powershell -NoProfile -Command "if ((Get-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform).State -eq 'Enabled') { '[whpx]' }" >nul 2>nul
+if "%ERRORLEVEL%"=="0" (
+  for /f "delims=" %%s in ('powershell -NoProfile -Command "if ((Get-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform).State -eq 'Enabled') { echo OK }"') do if "%%s"=="OK" set "ACCEL=-machine q35,accel=whpx -cpu max -accel whpx"
+)
+echo Aceleracao: %ACCEL%
+
+REM ---- 4. Disco virtual de trabalho ------------------------------------------
+if not exist joos-disk.qcow2 (
+  where qemu-img >nul 2>nul && qemu-img create -f qcow2 joos-disk.qcow2 32G >nul 2>nul
+  if not exist joos-disk.qcow2 (
+    if exist "%ProgramFiles%\qemu\qemu-img.exe" "%ProgramFiles%\qemu\qemu-img.exe" create -f qcow2 joos-disk.qcow2 32G >nul 2>nul
+  )
+)
 
 REM ---- 5. Boot! --------------------------------------------------------------
 echo.
-echo ==^> Iniciando JoOS (QEMU + WHPX) — uso basico dentro:
+echo ==^> Iniciando JoOS (QEMU) — uso basico dentro:
 echo     Super+Espaco  menu de apps     Super+Alt+Espaco  menu controle
 echo     Super+Enter   terminal         Super+P           screenshot
-echo     Ctrl+Alt+G    tirar o mouse de dentro da janela
+echo     Ctrl+Alt+G    solta o mouse da janela
 echo ===================================================================
 echo.
 
-"%QEMUBIN%" ^
-  -machine q35,accel=whpx ^
-  -accel whpx ^
-  -cpu max ^
+"%QEMUBIN%" %ACCEL% ^
   -m 4096 ^
   -smp 4 ^
   -display sdl,window-close=off ^
@@ -77,24 +100,4 @@ echo.
 echo.
 echo JoOS encerrado.
 pause
-exit /b 0
-
-:ensure_whpx
-REM WHPX is a Windows optional feature; enable if missing (needs admin).
-powershell -NoProfile -Command "Get-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform | Select-Object -ExpandProperty State" >nul 2>nul
-if errorlevel 1 (
-  echo WHPX nao habilitado. Abra um prompt como ADMINISTRADOR e rode:
-  echo   DISM /Online /Enable-Feature /FeatureName:HypervisorPlatform /All
-  echo Depois reinicie o PC e rode este script de novo.
-  pause
-  exit /b 1
-)
-for /f "delims=" %%s in ('powershell -NoProfile -Command "(Get-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform).State"') do set "WHXP_STATE=%%s"
-if /i not "%WHXP_STATE%"=="Enabled" (
-  echo WHPX nao habilitado. Abra um prompt como ADMINISTRADOR e rode:
-  echo   DISM /Online /Enable-Feature /FeatureName:HypervisorPlatform /All
-  echo Depois reinicie o PC e rode este script de novo.
-  pause
-  exit /b 1
-)
 exit /b 0
