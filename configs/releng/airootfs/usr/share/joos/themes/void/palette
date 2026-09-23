@@ -1,0 +1,16 @@
+# JoOS theme: void — minimalista, quase preto, verde neon discreto.
+bg=#060709
+bg_alt=#0c0e12
+fg=#d7dde0
+fg_dim=#5f6a70
+accent=#3dd68c
+accent2=#3dd6d6
+urgent=#e5484d
+
+hypr_bg=rgba(0x060709ee)
+hypr_bg_alt=rgba(0x0c0e12ee)
+hypr_fg=rgba(0xd7dde0ff)
+hypr_accent=rgba(0x3dd68cff)
+hypr_active=rgba(0x3dd68cee)
+hypr_inactive=rgba(0x0c0e12ee)
+hypr_urgent=rgba(0xe5484dee)

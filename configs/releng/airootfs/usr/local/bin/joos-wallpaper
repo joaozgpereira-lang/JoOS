@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# joos-wallpaper — set or cycle the current wallpaper (Hyprpaper).
+set -euo pipefail
+
+WALL_DIR="/home/joaozgp/JoOS/configs/releng/airootfs/usr/share/joos/wallpapers"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}"
+CURRENT="/var/tmp/joos-wallpaper"
+
+apply() {
+  local img
+  if [[ -f "$CONF/joos/wallpaper.bin" ]]; then
+    img="$CONF/joos/wallpaper.bin"
+  else
+    img="$(cat "$CURRENT" 2>/dev/null || echo "$WALL_DIR/kingdom.png")"
+    [[ -f "$img" ]] || img="$WALL_DIR/kingdom.png"
+  fi
+  mkdir -p "$CONF/hypr"
+  cat > "$CONF/hypr/hyprpaper.conf" <<EOF
+preload = $img
+wallpaper = ,$img
+EOF
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl monitors >/dev/null 2>&1; then
+    pkill -x hyprpaper 2>/dev/null || true
+    (nohup hyprpaper >/dev/null 2>&1 &) || true
+  fi
+}
+
+next() {
+  mapfile -t imgs < <(find "$WALL_DIR" -name '*.png' -o -name '*.jpg' | sort)
+  [[ ${#imgs[@]} -gt 0 ]] || { echo "Nenhum wallpaper encontrado" >&2; exit 1; }
+  current=$(cat "$CURRENT" 2>/dev/null || echo "${imgs[0]}")
+  next_img=""
+  for i in "${!imgs[@]}"; do
+    if [[ "${imgs[$i]}" == "$current" ]]; then
+      next_img="${imgs[$(( (i+1) % ${#imgs[@]} ))]}"
+      break
+    fi
+  done
+  [[ -n "$next_img" ]] || next_img="${imgs[0]}"
+  echo "$next_img" > "$CURRENT"
+  apply
+}
+
+case "${1:-apply}" in
+  apply) apply ;;
+  next) next ;;
+  *)
+    echo "uso: joos-wallpaper [apply|next]" >&2
+    exit 1
+    ;;
+esac

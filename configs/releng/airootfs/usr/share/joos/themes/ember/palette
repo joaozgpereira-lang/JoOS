@@ -1,0 +1,16 @@
+# JoOS theme: ember — brasa acesa. Vermelho/coral em carvão.
+bg=#17100d
+bg_alt=#231713
+fg=#f2e8e2
+fg_dim=#a08fb0
+accent=#e4572e
+accent2=#f2a65a
+urgent=#ff2e2e
+
+hypr_bg=rgba(0x17100dee)
+hypr_bg_alt=rgba(0x231713ee)
+hypr_fg=rgba(0xf2e8e2ff)
+hypr_accent=rgba(0xe4572eff)
+hypr_active=rgba(0xe4572eee)
+hypr_inactive=rgba(0x231713ee)
+hypr_urgent=rgba(0xff2e2eee)

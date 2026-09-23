@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# joos-power — power menu (Hyprlock, sleep, reboot, shutdown).
+set -euo pipefail
+
+choice=$(printf 'Bloquear\nSuspender\nReiniciar\nDesligar\nEncerrar sessão' | rofi -dmenu -p "Sistema" -theme joos -i)
+
+case "$choice" in
+  Bloquear) hyprlock ;;
+  Suspender) systemctl suspend ;;
+  Reiniciar) systemctl reboot ;;
+  Desligar) systemctl poweroff ;;
+  "Encerrar sessão") hyprctl dispatch exit ;;
+esac

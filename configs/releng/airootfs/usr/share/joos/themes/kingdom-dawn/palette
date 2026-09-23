@@ -1,0 +1,16 @@
+# JoOS theme: kingdom-dawn — fim de noite. Céu lavanda + rosa.
+bg=#1a1626
+bg_alt=#251f36
+fg=#f0eef6
+fg_dim=#9a92ad
+accent=#e8b4b4
+accent2=#b8a4d8
+urgent=#e07b7b
+
+hypr_bg=rgba(0x1a1626ee)
+hypr_bg_alt=rgba(0x251f36ee)
+hypr_fg=rgba(0xf0eef6ff)
+hypr_accent=rgba(0xe8b4b4ff)
+hypr_active=rgba(0xe8b4b4ee)
+hypr_inactive=rgba(0x251f36ee)
+hypr_urgent=rgba(0xe07b7bee)

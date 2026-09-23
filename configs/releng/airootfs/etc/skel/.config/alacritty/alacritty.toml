@@ -1,0 +1,14 @@
+@configuration
+opacity: 1
+
+window:
+  padding: { x: 10, y: 10 }
+  decorations: none
+  opacity: 0.96
+
+font:
+  normal: { family: "Noto Sans Mono" }
+  size: 10
+
+import:
+  - ~/.config/alacritty/colors.toml

@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# joos-install — install JoOS to a disk (UEFI, x86_64). Run from the live ISO:
+#   joos-install /dev/nvme0n1
+# A non-interactive one-liner: wipes the target disk, partitions GPT
+# (EFI 512M + btrfs root), pacstraps the JoOS image and installs GRUB.
+set -euo pipefail
+
+DISK="${1:-}"
+[[ -n "$DISK" ]] || { echo "uso: joos-install /dev/..."; exit 1; }
+[[ "$DISK" == /dev/* ]] || { echo "caminho inválido: $DISK"; exit 1; }
+
+ROOTMNT=/mnt/joos
+TIMEZONE="America/Sao_Paulo"
+LOCALE="pt_BR.UTF-8 UTF-8"
+KEYMAP="br-abnt2"
+HOSTNAME="joos"
+USER="joos"
+
+echo "==> JoOS installer para $DISK (irá APAGAR o disco!)"
+
+# btrfs
+mountpoint -q "$ROOTMNT" && umount -R "$ROOTMNT"
+wipefs -a "$DISK"
+sfdisk --wipe always --no-tell-kernel "$DISK" <<'EOF'
+label: gpt
+, 512M, U, *
+,, L
+EOF
+
+PART_EFI="${DISK}1"
+PART_ROOT="${DISK}2"
+if [[ "$DISK" =~ nvme || "$DISK" =~ mmc ]]; then
+  PART_EFI="${DISK}p1"
+  PART_ROOT="${DISK}p2"
+fi
+
+mkfs.fat -F32 "$PART_EFI"
+mkfs.btrfs -f -L joos "$PART_ROOT"
+
+mkdir -p "$ROOTMNT"
+mount "$PART_ROOT" "$ROOTMNT"
+
+subvols=(@ @home @log @cache)
+for s in "${subvols[@]}"; do
+  btrfs subvolume create "$ROOTMNT/$s"
+done
+umount "$ROOTMNT"
+mount -o subvol=@ "$PART_ROOT" "$ROOTMNT"
+mkdir -p "$ROOTMNT"/{home,var/log,var/cache,boot}
+mount -o subvol=@home "$PART_ROOT" "$ROOTMNT/home"
+mount -o subvol=@log "$PART_ROOT" "$ROOTMNT/var/log"
+mount -o subvol=@cache "$PART_ROOT" "$ROOTMNT/var/cache"
+mount "$PART_EFI" "$ROOTMNT/boot"
+
+# mirrorlist (Brazil first)
+cp /etc/pacman.conf "$ROOTMNT/etc/pacman.conf"
+reflector --country Brazil --latest 10 --protocol https --sort rate --save /tmp/archmirrorlist 2>/dev/null || true
+
+echo "==> pacstrap (JoOS packages)..."
+pacstrap -K "$ROOTMNT" \
+  base base-devel linux linux-firmware btrfs-progs grub efibootmgr \
+  networkmanager git zsh sudo \
+  hyprland hypridle hyprlock hyprpaper waybar rofi-wayland mako alacritty \
+  cliphist firefox grim slurp pipewire pipewire-pulse wireplumber pavucontrol \
+  playerctl polkit-gnome xdg-desktop-portal-gtk xdg-desktop-portal-hyprland \
+  jq curl wget bat eza fd fzf neovim ripgrep tmux brightnessctl btop \
+  ttf-jetbrains-mono ttf-nerd-fonts-symbols noto-fonts
+
+genfstab -U "$ROOTMNT" > "$ROOTMNT/etc/fstab"
+
+arch-chroot "$ROOTMNT" /bin/bash <<CHROOT_EOF
+set -e
+printf "%s\n" "$LOCALE" > /etc/locale.gen
+locale-gen
+echo "LANG=pt_BR.UTF-8" > /etc/locale.conf
+echo "KEYMAP=$KEYMAP" > /etc/vconsole.conf
+ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
+echo "$HOSTNAME" > /etc/hostname
+echo "127.0.1.1 $HOSTNAME" >> /etc/hosts
+systemctl enable NetworkManager systemd-resolved
+useradd -m -G wheel,input,video,audio,network,power -s /bin/zsh "$USER"
+echo "defina a senha do usuário '$USER':"
+passwd "$USER"
+printf '%%wheel ALL=(ALL:ALL) ALL\n' > /etc/sudoers.d/10-wheel
+chmod 440 /etc/sudoers.d/10-wheel
+
+# autologin no tty1 (sem display manager — keyboard-first, como o Omarchy)
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+printf '[Service]\nExecStart=\nExecStart=-/usr/bin/agetty --noreset --noclear --autologin %s - ${TERM}\n' "$USER" \
+  > /etc/systemd/system/getty@tty1.service.d/autologin.conf
+
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=JoOS --recheck
+grub-mkconfig -o /boot/grub/grub.cfg
+CHROOT_EOF
+
+# pull the JoOS desktop configs into the fresh user's home (skel is live-only)
+mkdir -p "$ROOTMNT/home/$USER/.config"
+cp -r /etc/skel/.config/* "$ROOTMNT/home/$USER/.config/"
+cp /etc/skel/.zshrc "$ROOTMNT/home/$USER/.zshrc" 2>/dev/null || true
+cp /etc/skel/.zlogin "$ROOTMNT/home/$USER/.zlogin" 2>/dev/null || true
+chown -R "$USER:$USER" "$ROOTMNT/home/$USER"
+cp -r /usr/share/joos "$ROOTMNT/usr/share/joos"
+cp -r /usr/local/bin/joos-* "$ROOTMNT/usr/local/bin/"
+
+umount -R "$ROOTMNT"
+echo "==> JoOS instalado. Reinicie e remova o pendrive."

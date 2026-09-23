@@ -1,0 +1,69 @@
+configuration {
+    font: "JetBrains Mono 11";
+    show-icons: true;
+    kb-element-select: "Return";
+}
+
+* {
+    background-color: @bg@;
+    text-color: @fg@;
+    border-color: @accent@;
+    spacing: 2px;
+}
+
+window {
+    background-color: @bg@;
+    border: 2px;
+    border-radius: 0px;
+    border-color: @accent@;
+    width: 420px;
+    location: center;
+    anchor: center;
+    margin: 0px 0px 0px 0px;
+}
+
+prompt {
+    background-color: @bg_alt@;
+    text-color: @accent@;
+    padding: 6px 10px;
+}
+
+entry {
+    background-color: @bg_alt@;
+    text-color: @fg@;
+    padding: 6px 10px;
+}
+
+listview {
+    background-color: @bg@;
+    text-color: @fg@;
+    padding: 4px;
+    lines: 12;
+    fixed-height: true;
+}
+
+element {
+    background-color: @bg@;
+    text-color: @fg@;
+    padding: 6px 10px;
+}
+
+element selected {
+    background-color: @accent@;
+    text-color: @bg@;
+}
+
+element urgent {
+    background-color: @urgent@;
+    text-color: @bg@;
+}
+
+element active {
+    background-color: @bg_alt@;
+    text-color: @accent@;
+}
+
+message {
+    background-color: @bg@;
+    text-color: @fg@;
+}

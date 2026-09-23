@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# joos-screenshot — capture screenshots (Omarchy-style).
+#  Super + P        : region screenshot (copied to clipboard, saved to ~/Pictures)
+#  Super + Ctrl + P : full screen screenshot
+set -euo pipefail
+
+DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}"
+mkdir -p "$DIR"
+
+case "${1:-region}" in
+  full)
+    grim - | tee "$DIR/joos-$(date +%Y%m%d-%H%M%S).png" | wl-copy
+    ;;
+  region)
+    grim -g "$(slurp)" - | tee "$DIR/joos-$(date +%Y%m%d-%H%M%S).png" | wl-copy
+    ;;
+esac
+
+notify-send "Captura salva em $DIR" -t 2000

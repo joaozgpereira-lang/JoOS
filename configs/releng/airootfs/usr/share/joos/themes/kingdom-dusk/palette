@@ -1,0 +1,16 @@
+# JoOS theme: kingdom-dusk — entardecer no mar. Roxo + laranja âmbar.
+bg=#14101e
+bg_alt=#1c162c
+fg=#f3ece4
+fg_dim=#a094b0
+accent=#e0917a
+accent2=#8e7fd0
+urgent=#d15f5f
+
+hypr_bg=rgba(0x14101eee)
+hypr_bg_alt=rgba(0x1c162cee)
+hypr_fg=rgba(0xf3ece4ff)
+hypr_accent=rgba(0xe0917aff)
+hypr_active=rgba(0xe0917aee)
+hypr_inactive=rgba(0x1c162cee)
+hypr_urgent=rgba(0xd15f5fee)

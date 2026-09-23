@@ -1,0 +1,50 @@
+name: Build JoOS ISO
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'configs/**'
+      - 'tools/**'
+      - 'build.sh'
+  workflow_dispatch:
+    inputs:
+      run:
+        default: 'latest'
+        description: 'Tag/label manual'
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare environment (archlinux container)
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed archiso python
+          ln -sf "$(which python3)" /usr/bin/python 2>/dev/null || true
+
+      - name: Generate pixel wallpapers
+        run: python3 tools/gen-wallpapers.py
+
+      - name: Build ISO with mkarchiso
+        run: |
+          mkdir -p out work
+          mkarchiso -v -w work -o out configs/releng
+
+      - name: Upload JoOS ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: joos-iso
+          path: out/*.iso
+          if-no-files-found: error
+
+      - name: Show ISO info
+        run: ls -lh out/

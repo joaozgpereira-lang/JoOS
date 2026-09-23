@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# joos-picker — open the cliphist history (Super + Shift + V) or files.
+set -euo pipefail
+
+case "${1:-clipboard}" in
+  clipboard)
+    cliphist list | rofi -dmenu -p "Clipboard" -theme joos -i | cliphist decode | wl-copy
+    ;;
+  files)
+    yazi
+    ;;
+esac

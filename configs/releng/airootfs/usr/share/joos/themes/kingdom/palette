@@ -1,0 +1,20 @@
+# JoOS theme: kingdom (default) — Kingdom: New Lands. Noite tempestuosa + dourado.
+# Formato: chave=valor. Os tokens são trocados nos templates _base.
+
+# --- CSS / waybar / rofi / alacritty / mako (hex) ---
+bg=#0b0e14
+bg_alt=#11161f
+fg=#e8e3d3
+fg_dim=#8a8f9c
+accent=#d8a657
+accent2=#6aa9a4
+urgent=#cf5b5b
+
+# --- Hyprland / hyprlock (rgba) ---
+hypr_bg=rgba(0x0b0e14ee)
+hypr_bg_alt=rgba(0x11161fee)
+hypr_fg=rgba(0xe8e3d3ff)
+hypr_accent=rgba(0xd8a657ff)
+hypr_active=rgba(0xd8a657ee)
+hypr_inactive=rgba(0x11161fee)
+hypr_urgent=rgba(0xcf5b5bee)

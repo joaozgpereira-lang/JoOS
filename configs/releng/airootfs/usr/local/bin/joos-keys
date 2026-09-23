@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# joos-keys — show the JoOS keybinding reference (Omarchy-style: SUPER + K).
+set -euo pipefail
+
+KEYS_FILE="/usr/share/joos/keys/joos-keys.md"
+
+rofi -dmenu -p "Atalhos JoOS (Super)" -theme joos -i -no-custom -lines 40 < "$KEYS_FILE"

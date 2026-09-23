@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# startjoos — launch the JoOS Wayland desktop (Hyprland) with the right env.
+# Used both by the live environment (.zlogin) and the installed system.
+
+set -e
+
+export XDG_CURRENT_DESKTOP=Hyprland
+export XDG_SESSION_TYPE=wayland
+export XDG_SESSION_DESKTOP=Hyprland
+export GTK_THEME=Adwaita-dark
+export MOZ_ENABLE_WAYLAND=1
+
+exec Hyprland "$@"

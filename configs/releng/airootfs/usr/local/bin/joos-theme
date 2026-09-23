@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# joos-theme — apply a JoOS theme (Omarchy-style).
+#   joos-theme list | set <name> | cycle
+#
+# Layout:
+#   /usr/share/joos/themes/<name>/        palette + wallpaper (per theme)
+#   /usr/share/joos/themes/_base/         shared per-app templates with @TOKEN@
+set -euo pipefail
+
+THEME_ROOT="${JOOS_THEME_ROOT:-/usr/share/joos/themes}"
+BASE_THEME="$THEME_ROOT/_base"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}"
+CURRENT_FILE="$CONF/joos/theme"
+WALL_DIR="/usr/share/joos/wallpapers"
+
+# template source resolution: theme dir first, shared base second
+resolve_template() {
+  local name="$1"
+  if [[ -f "$THEME_DIR/$name" ]]; then
+    echo "$THEME_DIR/$name"
+  elif [[ -f "$BASE_THEME/$name" ]]; then
+    echo "$BASE_THEME/$name"
+  fi
+}
+
+render() {
+  local src="${1:-}" dst="${2:-}"
+  [[ -n "$src" && -f "$src" ]] || return 0
+  local content
+  content="$(cat "$src")"
+  # substitute @KEY@ with palette values (skip empty lines/keys)
+  while IFS='=' read -r key val || [[ -n "$key" ]]; do
+    key="${key%%[[:space:]]*}"
+    [[ -n "$key" ]] || continue
+    content="${content//@$key@/$val}"
+  done < "$THEME_DIR/palette"
+  mkdir -p "$(dirname "$dst")"
+  printf '%s\n' "$content" > "$dst"
+}
+
+apply_wallpaper() {
+  if [[ -f "$THEME_DIR/wallpaper" ]]; then
+    cp "$THEME_DIR/wallpaper" "$CONF/joos/wallpaper.bin"
+  elif [[ -f "$WALL_DIR/${1}.png" ]]; then
+    cp "$WALL_DIR/${1}.png" "$CONF/joos/wallpaper.bin"
+  fi
+  if command -v joos-wallpaper >/dev/null 2>&1; then
+    joos-wallpaper apply &>/dev/null || true
+  fi
+}
+
+set_theme() {
+  local name="$1"
+  local dir="$THEME_ROOT/$name"
+  [[ -d "$dir" ]] || { echo "Tema não encontrado: $name" >&2; exit 1; }
+  [[ -f "$dir/palette" ]] || { echo "$dir não é um tema" >&2; exit 1; }
+  THEME_DIR="$dir"
+
+  mkdir -p "$CONF/joos"
+  NAME="$name"
+
+  render "$(resolve_template hypr-colors.conf)" "$CONF/hypr/colors.conf"
+  render "$(resolve_template hyprlock.conf)" "$CONF/hypr/hyprlock.conf"
+  render "$(resolve_template waybar.css)" "$CONF/waybar/style.css"
+  render "$(resolve_template rofi.rasi)" "$CONF/rofi/joos.rasi"
+  render "$(resolve_template alacritty-colors.toml)" "$CONF/alacritty/colors.toml"
+  render "$(resolve_template mako.conf)" "$CONF/mako/config"
+
+  apply_wallpaper "$name"
+  echo "$name" > "$CURRENT_FILE"
+  echo "Tema aplicado: $name"
+
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl monitors >/dev/null 2>&1; then
+    hyprctl reload >/dev/null 2>&1 || true
+    pkill -f waybar 2>/dev/null || true
+    (nohup waybar >/dev/null 2>&1 &) || true
+    pkill -x mako 2>/dev/null || true
+    (mako >/dev/null 2>&1 &) || true
+  fi
+}
+
+list_themes() {
+  ( for d in "$THEME_ROOT"/*/; do
+      [[ "$(basename "$d")" == "_base" ]] && continue
+      [[ -f "$d/palette" ]] && basename "$d"
+    done ) | sort
+}
+
+case "${1:-list}" in
+  list)
+    list_themes
+    ;;
+  set)
+    set_theme "$2"
+    ;;
+  cycle)
+    mapfile -t names < <(list_themes)
+    current=$(cat "$CURRENT_FILE" 2>/dev/null || echo "kingdom")
+    next=""
+    for i in "${!names[@]}"; do
+      if [[ "${names[$i]}" == "$current" ]]; then
+        next="${names[$(( (i+1) % ${#names[@]} ))]}"
+        break
+      fi
+    done
+    [[ -n "$next" ]] || next="kingdom"
+    set_theme "$next"
+    notify-send "JoOS" "Tema: $next" -t 1500 2>/dev/null || true
+    ;;
+  *)
+    echo "uso: joos-theme [list|set <nome>|cycle]" >&2
+    exit 1
+    ;;
+esac

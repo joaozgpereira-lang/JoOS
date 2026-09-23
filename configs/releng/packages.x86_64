@@ -1,0 +1,72 @@
+# JoOS — package manifest (live ISO / pacstrap target)
+# Lean, keyboard-first, pixel-aesthetic desktop.
+
+## Kernel & firmware
+amd-ucode
+intel-ucode
+linux
+linux-firmware
+
+## Filesystems & boot
+btrfs-progs
+dosfstools
+e2fsprogs
+efibootmgr
+grub
+
+## Base tooling
+base-devel
+git
+man-db
+networkmanager
+openssh
+reflector
+sudo
+unzip
+vim
+zsh
+
+## Fonts (pixel/retro aesthetic)
+freetype2
+noto-fonts
+ttf-jetbrains-mono
+ttf-nerd-fonts-symbols
+
+## JoOS desktop core
+alacritty
+cliphist
+firefox
+grim
+hypridle
+hyprland
+hyprlock
+hyprpaper
+jq
+mako
+pavucontrol
+pipewire
+pipewire-pulse
+playerctl
+polkit-gnome
+rofi-wayland
+slurp
+swappy
+waybar
+wireplumber
+wl-clipboard
+xdg-desktop-portal-gtk
+xdg-desktop-portal-hyprland
+yazi
+
+## Utilities
+bat
+brightnessctl
+btop
+curl
+eza
+fd
+fzf
+neovim
+ripgrep
+tmux
+wget

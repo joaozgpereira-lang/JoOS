@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# joos-layout-toggle — flip between dwindle (tree split) and master layouts.
+set -euo pipefail
+prog="/usr/bin/hyprctl"
+
+current="$($prog getoption general:layout -j 2>/dev/null | grep -o '"str":"[^"]*"' | cut -d'"' -f4)"
+if [[ "$current" == "master" ]]; then
+  $prog keyword general:layout dwindle
+else
+  $prog keyword general:layout master
+fi

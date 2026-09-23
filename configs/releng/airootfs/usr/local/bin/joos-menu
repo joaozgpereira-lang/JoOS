@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# joos-menu — the JoOS control menu (Omarchy-style). SUPER + Alt + Space.
+# Single rofi prompt for themes, control, and power with the keyboard.
+set -euo pipefail
+
+# Non-interactive selection: reuse the running instance
+if pgrep -x rofi >/dev/null; then
+  exit 0
+fi
+
+choice=$(printf '%s\n' \
+  "Aplicativos…" \
+  "Terminal" \
+  "Firefox" \
+  "Temas" \
+  "Wallpaper" \
+  "Captura de tela" \
+  "Clipboard" \
+  "Brilho +" \
+  "Brilho -" \
+  "Volume +" \
+  "Volume -" \
+  "Travar sessão" \
+  "Sistema (reiniciar/desligar)" \
+  "Encerrar sessão" \
+  | rofi -dmenu -p "JoOS" -theme joos -i)
+
+case "$choice" in
+  "Aplicativos…") rofi -show drun -theme joos ;;
+  Terminal) alacritty ;;
+  Firefox) firefox ;;
+  Temas) joos-theme cycle ;;
+  "Captura de tela") joos-screenshot region ;;
+  Clipboard) joos-picker clipboard ;;
+  "Brilho +") brightnessctl set +5% ;;
+  "Brilho -") brightnessctl set 5%- ;;
+  "Volume +") wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ ;;
+  "Volume -") wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
+  "Travar sessão") hyprlock ;;
+  "Sistema (reiniciar/desligar)") joos-power ;;
+  "Encerrar sessão") hyprctl dispatch exit ;;
+esac

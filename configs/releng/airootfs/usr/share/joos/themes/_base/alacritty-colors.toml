@@ -1,0 +1,23 @@
+[colors.primary]
+background = "@bg@"
+foreground = "@fg@"
+
+[colors.normal]
+black = "@bg_alt@"
+red = "@urgent@"
+green = "@accent2@"
+yellow = "@accent@"
+blue = "@accent2@"
+magenta = "@accent@"
+cyan = "@accent2@"
+white = "@fg_dim@"
+
+[colors.bright]
+black = "@bg_alt@"
+red = "@urgent@"
+green = "@accent2@"
+yellow = "@accent@"
+blue = "@accent2@"
+magenta = "@accent@"
+cyan = "@accent2@"
+white = "@fg@"

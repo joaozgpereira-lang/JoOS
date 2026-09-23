@@ -1,0 +1,18 @@
+# JoOS — build outputs & local cruft
+work/
+out/
+*.iso
+*.qcow2
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor/OS
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# Local secrets
+.env
