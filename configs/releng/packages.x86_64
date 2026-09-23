@@ -19,6 +19,7 @@ syslinux
 ## Base tooling
 base-devel
 git
+licenses
 man-db
 networkmanager
 openssh
