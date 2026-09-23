@@ -13,6 +13,8 @@ dosfstools
 e2fsprogs
 efibootmgr
 grub
+memtest86+
+syslinux
 
 ## Base tooling
 base-devel
